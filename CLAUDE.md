@@ -17,7 +17,7 @@ richer clip types, a proper key recorder, and an app icon.
 | Distribution | Direct / local, **not** Mac App Store | `ENABLE_APP_SANDBOX` is **off** (done) |
 | Persistence | **SwiftData** | `Persistence.swift` + `.xcdatamodeld` removed (done) |
 | v1 clip types | **Plain text only** | Rich text, images and file URLs are explicitly out of scope for v1 |
-| Deployment target | macOS 26.5 | No back-compat guards. Use current APIs freely. |
+| Deployment target | **macOS 14.6** (Sonoma) | The target-level setting overrides the project-level `26.5` — 14.6 is what ships. APIs newer than Sonoma need `@available` guards. |
 
 Do not re-litigate these without asking. In particular, do not "helpfully" restore
 the sandbox — auto-paste depends on it being off.
@@ -220,8 +220,15 @@ Three independent limits, all enforced in `ClipStore`:
 - Expiry is not time-critical, so `RetentionSweeper` runs every 10 minutes with a
   60 s tolerance, plus once at launch to catch up on whatever expired while the app
   was not running.
-- Both are user-visible in Settings, along with a manual sweep and a
-  "clear unpinned history" button.
+- All limits are user-visible in Settings, along with three manual actions:
+  **Sweep Expired Now** (applies the age limit immediately), **Clear Unpinned**
+  (keeps pinned clips), and **Clear Everything…** (`ClipStore.deleteAll()`, wipes
+  pinned clips too). The last one is irreversible, so it is the only one behind a
+  confirmation dialog — keep it that way, and keep the pinned count in the prompt
+  so the user knows what they are about to lose.
+- Verified end to end: 4 clips including 1 pinned → 0. Do not "optimise"
+  `deleteAll()` into a fetch-then-delete loop; the batch form is a single SQL
+  statement.
 
 ## Debugging this app
 
