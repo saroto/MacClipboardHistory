@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
     let sweeper: RetentionSweeper
+    let hotKeys: HotKeyManager
     /// Called when the shortcut changes so the old registration is replaced.
     var onHotKeyChange: () -> Void = {}
 
@@ -35,6 +36,15 @@ struct SettingsView: View {
                     }
                 }
                 .onChange(of: hotKeyPreset) { onHotKeyChange() }
+
+                if !hotKeys.isRegistered {
+                    Label(
+                        "\(AppSettings.hotKey.label) could not be registered — another app is already using it. Pick a different shortcut.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                }
 
                 Toggle("Paste automatically after choosing", isOn: $autoPaste)
 
@@ -146,5 +156,8 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView(sweeper: RetentionSweeper(store: ClipStore(context: AppModelContainer.shared.mainContext)))
+    SettingsView(
+        sweeper: RetentionSweeper(store: ClipStore(context: AppModelContainer.shared.mainContext)),
+        hotKeys: HotKeyManager()
+    )
 }

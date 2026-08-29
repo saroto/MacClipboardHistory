@@ -33,10 +33,16 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private let monitor: ClipboardMonitor
     private let container: ModelContainer
+    private let onOpenSettings: () -> Void
 
-    init(monitor: ClipboardMonitor, container: ModelContainer) {
+    init(
+        monitor: ClipboardMonitor,
+        container: ModelContainer,
+        onOpenSettings: @escaping () -> Void
+    ) {
         self.monitor = monitor
         self.container = container
+        self.onOpenSettings = onOpenSettings
         super.init()
     }
 
@@ -54,6 +60,13 @@ final class PanelController: NSObject, NSWindowDelegate {
 
         let panel = self.panel ?? makePanel()
         self.panel = panel
+
+        // Rebuild the SwiftUI content on every open. The window is reused, but its
+        // hosting view must not be: a reused view keeps its @State (stale selection,
+        // stale search text), never re-runs `.onAppear`, and can keep serving the
+        // @Query snapshot it had when the panel was first created — which is why a
+        // clip chosen from history appeared not to move to the top.
+        panel.contentView = NSHostingView(rootView: makeRootView())
         position(panel)
 
         panel.makeKeyAndOrderFront(nil)
@@ -87,15 +100,21 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.delegate = self
         panel.onCancel = { [weak self] in self?.hide(restoringFocus: true) }
+        return panel
+    }
 
-        let root = ClipListView(onActivate: { [weak self] clip in
-            self?.paste(clip)
-        })
+    private func makeRootView() -> some View {
+        ClipListView(
+            onActivate: { [weak self] clip in self?.paste(clip) },
+            onOpenSettings: { [weak self] in
+                // Dismiss first: the settings window taking key would fire
+                // windowDidResignKey anyway, and we want focus handed back cleanly.
+                self?.hide(restoringFocus: false)
+                self?.onOpenSettings()
+            }
+        )
         .environment(monitor)
         .modelContainer(container)
-
-        panel.contentView = NSHostingView(rootView: root)
-        return panel
     }
 
     /// Show near the pointer, clamped to the screen it is on.

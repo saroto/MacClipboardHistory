@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Xcode per-user state (regenerated automatically; churns on every open)
+xcuserdata/
+*.xcuserstate
+
+# Build products
+build/
+DerivedData/
+*.dSYM/
+
+# Distribution artifacts
+*.dmg
+
+# Swift Package Manager
+.build/
+.swiftpm/

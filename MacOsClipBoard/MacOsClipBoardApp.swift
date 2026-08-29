@@ -14,20 +14,15 @@ struct MacOsClipBoardApp: App {
     // icon and no main window. The menu bar item is the whole UI for now; it will be
     // joined by the hotkey-summoned floating panel.
     var body: some Scene {
-        MenuBarExtra("Clipboard History", systemImage: "doc.on.clipboard") {
-            ClipListView()
+        MenuBarExtra("Reclip", systemImage: "doc.on.clipboard") {
+            ClipListView(onOpenSettings: { appDelegate.settingsWindow.show() })
                 .environment(appDelegate.monitor)
                 .frame(width: 380, height: 440)
         }
         .menuBarExtraStyle(.window)
         .modelContainer(AppModelContainer.shared)
 
-        Settings {
-            SettingsView(
-                sweeper: appDelegate.sweeper,
-                onHotKeyChange: { appDelegate.registerHotKey() }
-            )
-                .modelContainer(AppModelContainer.shared)
-        }
+        // No `Settings` scene: SettingsWindowController owns the window instead, so
+        // both the popover and the panel open it the same deterministic way.
     }
 }

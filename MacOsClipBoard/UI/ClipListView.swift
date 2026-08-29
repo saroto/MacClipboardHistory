@@ -14,10 +14,12 @@ import SwiftUI
 struct ClipListView: View {
     /// Supplied by the panel. When nil, activating a clip only copies it.
     var onActivate: ((Clip) -> Void)?
+    /// Opening Settings goes through the app-owned window controller rather than
+    /// `@Environment(\.openSettings)`, which is a no-op outside the scene graph.
+    var onOpenSettings: (() -> Void)?
 
     @Environment(\.modelContext) private var context
     @Environment(ClipboardMonitor.self) private var monitor
-    @Environment(\.openSettings) private var openSettings
 
     // Most-recently-used first. Bool isn't Comparable, so pinned-first can't be a
     // SortDescriptor — that half of the ordering happens in `visibleClips`, along
@@ -112,7 +114,7 @@ struct ClipListView: View {
                 .foregroundStyle(.secondary)
             Spacer()
             Button {
-                openSettings()
+                onOpenSettings?()
             } label: {
                 Image(systemName: "gearshape")
             }
