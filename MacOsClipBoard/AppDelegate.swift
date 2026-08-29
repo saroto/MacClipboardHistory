@@ -11,8 +11,9 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let monitor: ClipboardMonitor
     let sweeper: RetentionSweeper
-    let panelController: PanelController
     let hotKeys = HotKeyManager()
+    private(set) var panelController: PanelController!
+    private(set) var settingsWindow: SettingsWindowController!
 
     override init() {
         AppSettings.registerDefaults()
@@ -23,8 +24,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let monitor = ClipboardMonitor(store: store)
         self.monitor = monitor
         self.sweeper = RetentionSweeper(store: store)
-        self.panelController = PanelController(monitor: monitor, container: AppModelContainer.shared)
         super.init()
+
+        settingsWindow = SettingsWindowController(
+            sweeper: sweeper,
+            hotKeys: hotKeys,
+            container: AppModelContainer.shared,
+            onHotKeyChange: { [weak self] in self?.registerHotKey() }
+        )
+        panelController = PanelController(
+            monitor: monitor,
+            container: AppModelContainer.shared,
+            onOpenSettings: { [weak self] in self?.settingsWindow.show() }
+        )
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -34,7 +46,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Re-registers the summon shortcut, e.g. after it is changed in Settings.
-    func registerHotKey() {
+    /// A `false` result means another app already owns the combination; that is
+    /// surfaced in Settings via `HotKeyManager.isRegistered` rather than swallowed.
+    @discardableResult
+    func registerHotKey() -> Bool {
         hotKeys.register(AppSettings.hotKey) { [weak self] in
             self?.panelController.toggle()
         }

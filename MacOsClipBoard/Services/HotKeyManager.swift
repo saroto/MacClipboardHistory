@@ -12,6 +12,7 @@
 import AppKit
 import Carbon.HIToolbox
 import Foundation
+import Observation
 import OSLog
 
 /// The Carbon callback is a C function pointer and carries no Swift context, so the
@@ -59,6 +60,7 @@ enum HotKeyPreset: Int, CaseIterable, Identifiable, Sendable {
 }
 
 @MainActor
+@Observable
 final class HotKeyManager {
     private static let log = Logger(subsystem: "kimsinh.MacOsClipBoard", category: "hotkey")
     private static let signature: OSType = 0x434C_4950 // 'CLIP'

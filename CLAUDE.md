@@ -105,6 +105,13 @@ apps. Use an `NSPanel` hosting an `NSHostingView`:
   gets stuck.
 - `level = .floating`, `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]`.
 - Dismiss on Escape (`cancelOperation`), on selection, and on resigning key.
+- **Rebuild the hosting view on every `show()`.** The `NSPanel` is reused, but its
+  `NSHostingView` must not be: a reused SwiftUI view keeps its `@State` (stale
+  selection and search text), never re-runs `.onAppear`, and can keep serving the
+  `@Query` snapshot it had when the panel was first created. That last one is what
+  made a clip chosen from history appear not to move to the top. Verified by
+  instrumenting `.onAppear`: it now fires once per open, and the top row reflects
+  the most recently used clip.
 - `.nonactivatingPanel` alone does not reliably give an accessory app the keyboard,
   so `show()` also calls `NSApp.activate(ignoringOtherApps:)`. That is safe *only*
   because `previousApp` was captured first and focus is handed back on every exit
@@ -148,6 +155,20 @@ shortcut that does nothing. Settings offers four presets instead of a key record
 
 Auto-paste degrades rather than failing: with Accessibility denied, or the setting
 off, choosing a clip still copies it and the user presses ⌘V. Keep that fallback.
+
+### Settings must not use the SwiftUI `Settings` scene
+
+`@Environment(\.openSettings)` is supplied by the *scene graph*, so it silently
+does nothing when invoked from the panel's hand-built `NSHostingView`. And as an
+`LSUIElement` app we are usually inactive, so a window that does get created opens
+behind the frontmost app — indistinguishable from nothing happening. Together these
+made Settings open only sometimes.
+
+`SettingsWindowController` owns an `NSWindow` instead: `NSApp.activate`, then
+`makeKeyAndOrderFront` plus `orderFrontRegardless`. Critically it sets
+**`isReleasedWhenClosed = false`** — a programmatic `NSWindow` is released on close
+by default, which makes the *second* open fail. Verified opening three times with
+closes in between.
 
 ## Data model sketch
 
